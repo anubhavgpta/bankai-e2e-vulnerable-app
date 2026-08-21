@@ -39,6 +39,7 @@ jobs:
       - name: Run backend tests
         run: |
           cd backend
+          PYTHONPATH=. python -c "from app.database import init_db; init_db()"
           PYTHONPATH=. pytest -q
 
       - name: Set up Node
