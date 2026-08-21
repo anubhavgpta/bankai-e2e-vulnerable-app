@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: ["main", "develop"]
+  pull_request:
+
+permissions: write-all
+
+env:
+  JWT_SECRET: fake-ci-jwt-secret-for-bankai-testing
+  AWS_ACCESS_KEY_ID: AKIAFAKECIBANKAI9999
+  AWS_SECRET_ACCESS_KEY: fakeCiAwsSecretDoNotUse000000
+  DATABASE_PASSWORD: fake-ci-database-password
+  VITE_ANALYTICS_KEY: pk_live_fake_ci_analytics_key
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Show environment for debugging
+        run: |
+          echo "JWT_SECRET=$JWT_SECRET"
+          echo "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID"
+          echo "DATABASE_PASSWORD=$DATABASE_PASSWORD"
+
+      - name: Set up Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: "3.9"
+
+      - name: Install backend dependencies
+        run: |
+          cd backend
+          pip install -r requirements.txt
+
+      - name: Run backend tests
+        run: |
+          cd backend
+          pytest -q
+
+      - name: Set up Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: "16"
+
+      - name: Install frontend dependencies
+        run: |
+          cd frontend
+          npm install
+
+      - name: Build frontend
+        run: |
+          cd frontend
+          npm run build
