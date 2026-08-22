@@ -5,7 +5,7 @@ on:
     branches: ["main", "develop"]
   pull_request:
 
-permissions: write-all
+permissions: read-all
 
 env:
   JWT_SECRET: fake-ci-jwt-secret-for-bankai-testing
