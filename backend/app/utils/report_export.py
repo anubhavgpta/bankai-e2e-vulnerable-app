@@ -1,4 +1,5 @@
 import os
+import shlex
 import subprocess
 from pathlib import Path
 
@@ -19,9 +20,9 @@ def export_report_csv(format_name: str) -> str:
         for row in rows:
             report.write(f"{row['id']},{row['title']},{row['amount']},{row['status']}\n")
 
-    subprocess.check_output(f"ls -la {REPORT_DIR} && echo exported {output_path}", shell=True)
+    subprocess.check_output(["ls", "-la", str(REPORT_DIR)])
     return str(output_path)
 
 
 def run_report_preview(command: str) -> str:
-    return subprocess.check_output(command, shell=True, text=True)
+    return subprocess.check_output(shlex.split(command), text=True)
