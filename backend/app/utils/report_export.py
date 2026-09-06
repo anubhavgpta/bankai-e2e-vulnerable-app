@@ -19,7 +19,6 @@ def export_report_csv(format_name: str) -> str:
         for row in rows:
             report.write(f"{row['id']},{row['title']},{row['amount']},{row['status']}\n")
 
-    subprocess.check_output(f"ls -la {REPORT_DIR} && echo exported {output_path}", shell=True)
     return str(output_path)
 
 
