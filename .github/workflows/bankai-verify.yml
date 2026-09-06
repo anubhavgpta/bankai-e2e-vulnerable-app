@@ -1,52 +1,87 @@
 name: Bankai Verify
-
-# Dispatched by Bankai after it opens a remediation pull request, targeting
-# the remediation branch as `ref`. Not triggered on push/pull_request — this
-# workflow only ever runs on-demand, once per remediation PR.
 on:
   workflow_dispatch:
     inputs:
       ticket_id:
-        description: Bankai ticket id this run verifies (for correlation only)
+        description: Bankai ticket id
         required: false
         type: string
-
+permissions:
+  contents: read
+concurrency:
+  group: bankai-verify-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      # Detected stack: unknown
-      - run: echo "TODO - add this repo's build steps here"
-
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+      - run: python -m pip install -r backend/requirements.txt
+      - run: python -m pip check
+      - run: python -m compileall -q backend/app backend/tests
   image:
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      # TODO: build (and optionally push) a container image, e.g.:
-      #   - run: docker build -t my-app:${{ github.sha }} .
-      - run: echo "TODO - add this repo's image build steps here"
-
+      - run: docker build -t bankai-verified:${{ github.sha }} .
+      - run: docker save bankai-verified:${{ github.sha }} -o bankai-image.tar
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bankai-image-${{ github.sha }}
+          path: bankai-image.tar
+          retention-days: 1
   deploy-dev:
     needs: image
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
-      # TODO: deploy the image to this repo's own dev environment. Bankai
-      # does not provision or host this environment — it only waits for this
-      # job to report pass/fail.
-      - run: echo "TODO - add this repo's dev-deploy steps here"
-
+      - uses: actions/download-artifact@v4
+        with:
+          name: bankai-image-${{ github.sha }}
+      - run: docker load -i bankai-image.tar
+      - name: Start isolated development app and verify health
+        run: |
+          docker run -d --name bankai-dev -p 127.0.0.1:18000:8000 -e DATABASE_PATH=/tmp/bankai-dev.db bankai-verified:${{ github.sha }}
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:18000/health > health.json; then
+              python3 -c 'import json; assert json.load(open("health.json"))["status"] == "ok"'
+              exit 0
+            fi
+            sleep 1
+          done
+          docker logs bankai-dev
+          exit 1
+      - if: always()
+        run: docker rm -f bankai-dev
   functional-test:
     needs: deploy-dev
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
-      - run: echo "TODO - add this repo's FT test commands here"
-
+      - uses: actions/download-artifact@v4
+        with:
+          name: bankai-image-${{ github.sha }}
+      - run: docker load -i bankai-image.tar
+      - name: Run existing backend suite in the built image
+        run: >-
+          docker run --rm -e DATABASE_PATH=/tmp/bankai-functional.db bankai-verified:${{ github.sha }}
+          sh -c 'python -c "from app.database import init_db; init_db()" && python -m pytest tests -q'
   integration-test:
     needs: functional-test
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
-      - run: echo "TODO - add this repo's IT test commands here"
+      - uses: actions/download-artifact@v4
+        with:
+          name: bankai-image-${{ github.sha }}
+      - run: docker load -i bankai-image.tar
+      - name: Verify CSV export with SQLite and hostile format strings
+        run: >-
+          docker run --rm bankai-verified:${{ github.sha }}
+          python -m unittest discover -s tests -p test_report_export_security.py -v
