@@ -1,5 +1,4 @@
 import os
-import subprocess
 from pathlib import Path
 
 from ..database import get_connection
@@ -23,4 +22,7 @@ def export_report_csv(format_name: str) -> str:
 
 
 def run_report_preview(command: str) -> str:
-    return subprocess.check_output(command, shell=True, text=True)
+    if command != "csv":
+        raise ValueError("Unsupported preview command")
+    output_path = export_report_csv(command)
+    return Path(output_path).read_text(encoding="utf-8")
