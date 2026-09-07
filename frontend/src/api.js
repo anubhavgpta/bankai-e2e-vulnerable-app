@@ -23,7 +23,7 @@ export async function login(email, password) {
 }
 
 export async function fetchExpenses(status = "all") {
-  const response = await api.get(`/api/expenses?status=${status}`);
+  const response = await api.get("/api/expenses", { params: { status } });
   return response.data;
 }
 
