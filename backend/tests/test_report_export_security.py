@@ -38,9 +38,15 @@ class ReportExportSecurityTests(unittest.TestCase):
                     self.assertTrue(output.is_file())
             shell.assert_not_called()
 
-    def test_existing_preview_helper_still_resolves_its_dependency(self):
-        with patch("subprocess.check_output", return_value="preview result"):
-            self.assertEqual(report_export.run_report_preview("preview"), "preview result")
+    def test_preview_returns_csv_content_without_subprocess(self):
+        with patch("subprocess.check_output", side_effect=AssertionError("Unexpected subprocess invocation")):
+            content = report_export.run_report_preview("csv")
+        self.assertIn("id,title,amount,status", content)
+
+    def test_preview_rejects_shell_metacharacters(self):
+        with patch("subprocess.check_output", side_effect=AssertionError("Unexpected subprocess invocation")):
+            with self.assertRaises(ValueError):
+                report_export.run_report_preview("csv; echo injected")
 
 
 if __name__ == "__main__":
