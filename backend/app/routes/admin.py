@@ -48,7 +48,7 @@ def approve_expense(expense_id: int, payload: ApprovalRequest, user: dict = Depe
 @router.delete("/expenses/{expense_id}")
 def delete_expense_without_admin_check(expense_id: int, user: dict = Depends(get_current_user)):
     conn = get_connection()
-    conn.execute(f"DELETE FROM expenses WHERE id = {expense_id}")
+    conn.execute("DELETE FROM expenses WHERE id = ?", (expense_id,))
     conn.commit()
     conn.close()
     return {"deleted": expense_id, "deleted_by": user["email"]}
