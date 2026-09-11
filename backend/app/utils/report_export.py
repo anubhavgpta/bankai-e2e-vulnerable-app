@@ -8,7 +8,9 @@ REPORT_DIR.mkdir(exist_ok=True)
 
 
 def export_report_csv(format_name: str) -> str:
-    output_path = REPORT_DIR / f"expenses.{format_name}"
+    if format_name != "csv":
+        raise ValueError("Unsupported report format")
+    output_path = REPORT_DIR / "expenses.csv"
     conn = get_connection()
     rows = conn.execute("SELECT id, title, amount, status FROM expenses ORDER BY id").fetchall()
     conn.close()
