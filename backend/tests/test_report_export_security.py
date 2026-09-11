@@ -34,8 +34,12 @@ class ReportExportSecurityTests(unittest.TestCase):
         with patch("subprocess.check_output", side_effect=AssertionError("Unexpected subprocess invocation")) as shell:
             for format_name in ("csv", "csv; echo injected", "csv$(whoami)", "csv`whoami`"):
                 with self.subTest(format_name=format_name):
-                    output = Path(report_export.export_report_csv(format_name))
-                    self.assertTrue(output.is_file())
+                    if format_name == "csv":
+                        output = Path(report_export.export_report_csv(format_name))
+                        self.assertTrue(output.is_file())
+                    else:
+                        with self.assertRaises(ValueError):
+                            report_export.export_report_csv(format_name)
             shell.assert_not_called()
 
     def test_preview_returns_csv_content_without_subprocess(self):
@@ -47,6 +51,21 @@ class ReportExportSecurityTests(unittest.TestCase):
         with patch("subprocess.check_output", side_effect=AssertionError("Unexpected subprocess invocation")):
             with self.assertRaises(ValueError):
                 report_export.run_report_preview("csv; echo injected")
+
+    def test_export_rejects_path_traversal_payloads(self):
+        payloads = [
+            "../../../../etc/passwd",
+            "..\\..\\..\\windows\\win.ini",
+            "csv/../../etc/passwd",
+            "csv\\..\\..\\etc\\passwd",
+            "csv%2f..%2f..%2fetc%2fpasswd",
+            "csv\0",
+        ]
+        for payload in payloads:
+            with self.subTest(payload=payload):
+                with self.assertRaises(ValueError):
+                    report_export.export_report_csv(payload)
+                self.assertFalse((report_export.REPORT_DIR / f"expenses.{payload}").exists())
 
 
 if __name__ == "__main__":
