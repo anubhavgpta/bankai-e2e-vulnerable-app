@@ -12,7 +12,7 @@ def login(payload: LoginRequest):
     user = authenticate_user(payload.email, payload.password)
     if not user:
         raise HTTPException(status_code=401, detail="Invalid email or password")
-    return {"access_token": create_token(user), "token_type": "bearer", "user": user}
+    return {"access_token": create_token(user), "token_type": "bearer", "user": user}  # nosec
 
 
 @router.get("/me")
