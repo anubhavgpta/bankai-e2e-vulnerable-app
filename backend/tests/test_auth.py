@@ -36,7 +36,7 @@ def test_admin_route_rejects_employee_token():
 def test_sql_injection_login_bypasses_password_check():
     response = client.post(
         "/api/users/login",
-        json={"email": "employee@bankai.local' --", "password": "not-the-password"},
+        json={"email": "employee@bankai.local' --", "password": "not-the-password"},  # nosec B105
     )
 
     assert response.status_code == 200
