@@ -27,8 +27,8 @@ def test_employee_can_create_expense():
         headers=auth_headers(),
     )
 
-    assert response.status_code == 200
-    assert response.json()["status"] == "pending"
+    assert response.status_code == 200  # nosec B101
+    assert response.json()["status"] == "pending"  # nosec B101
 
 
 def test_missing_auth_is_rejected_for_expense_creation():
@@ -42,7 +42,7 @@ def test_missing_auth_is_rejected_for_expense_creation():
         },
     )
 
-    assert response.status_code == 401
+    assert response.status_code == 401  # nosec B101
 
 
 @pytest.mark.skip(reason="Receipt validation policy not implemented yet")
@@ -54,4 +54,4 @@ def test_receipt_upload_rejects_executable_file():
             headers=auth_headers(),
         )
 
-    assert response.status_code == 400
+    assert response.status_code == 400  # nosec B101
