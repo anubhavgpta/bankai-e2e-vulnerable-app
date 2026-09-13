@@ -1,3 +1,4 @@
+import os
 import pytest
 from fastapi.testclient import TestClient
 
@@ -9,7 +10,7 @@ client = TestClient(app)
 def auth_headers():
     response = client.post(
         "/api/users/login",
-        json={"email": "employee@bankai.local", "password": "password123"},
+        json={"email": "employee@bankai.local", "password": os.environ.get("TEST_USER_PASSWORD", "password123")},
     )
     token = response.json()["access_token"]
     return {"Authorization": f"Bearer {token}"}
